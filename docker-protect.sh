@@ -186,9 +186,44 @@ if [ ! "$(stat -c '%U:%G' /lib/systemd/system/docker.service)" == "root:root" ];
 fi
 
 ### 13. docker.service 파일 접근권한 설정
-FRAG_PATH=$(systemctl show -p FragmentPath docker.service | awk -F= '{print $2}')
+SERVICE_PATH=$(systemctl show -p FragmentPath docker.service | awk -F= '{print $2}')
 # 결과값이 있는지 확인
-if [ -n "$FRAG_PATH" ]; then
-    chmod 644 $FRAG_PATH
-    echo docker.service 파일 접근권한 설정
+if [ -n "$SERVICE_PATH" ]; then
+    PERMISSIONS=$(stat -c '%a' $SERVICE_PATH)
+    if ! [ "$PERMISSIONS" == "644" ]; then
+        chmod 644 $SERVICE_PATH
+        echo docker.service 파일 접근권한 설정
+    fi
+fi
+
+### 14. docker.socket 소유권 설정
+SOCKET_PATH=$(systemctl show -p FragmentPath docker.socket | awk -F= '{print $2}')
+# 결과값이 있는지 확인
+if [ -n "$SOCKET_PATH" ]; then
+    if [ ! "$(stat -c '%U:%G' $SOCKET_PATH)" == "root:root" ]; then
+        chown root:root $SOCKET_PATH
+        echo docker.socket 소유권 설정
+    fi
+fi
+
+### 15. /etc/docker 디렉터리 소유권 설정
+if [ ! "$(stat -c '%U:%G' /etc/docker)" == "root:root" ]; then
+    sudo chown root:root /etc/docker
+    echo /etc/docker 디렉터리 소유권 설정
+fi
+
+### 16. /etc/docker 디렉터리 접근권한 설정
+ETC_DOCKER_DIR="/etc/docker"
+if [ -d "$ETC_DOCKER_DIR" ]; then
+    PERMISSIONS=$(stat -c '%a' $ETC_DOCKER_DIR)
+    if [ "$PERMISSIONS" -gt 755 ]; then
+        chmod 755 $ETC_DOCKER_DIR
+        echo "/etc/docker 디렉터리 접근권한 설정"
+    fi
+fi
+
+### 17. /var/run/docker.sock 파일 소유권 설정
+if [ ! "$(stat -c '%U:%G' /var/run/docker.sock)" == "root:docker" ]; then
+    sudo chown root:docker /var/run/docker.sock
+    echo /var/run/docker.sock 파일 소유권 설정
 fi
