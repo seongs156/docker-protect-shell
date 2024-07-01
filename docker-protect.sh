@@ -339,3 +339,11 @@ fi
 
 ### 27. PIDs cgroup 제한
 # docker-compose.yml 파일에 작성
+
+
+### 28. 도커의 default bridge docker() 사용 제한
+# 10번과 동일함 
+
+
+### 29. 호스트의 user namespaces 공유 제한
+# 컨테이너에서 설정
