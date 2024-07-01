@@ -124,12 +124,13 @@ fi
 ### 10. default bridege를 통한 컨테이너간 네트워크 트래픽 제한
 if ! command docker network ls --quiet | xargs docker network inspect --format '{{.Name}}: {{ .Options }}' | grep com.docker.network.bridge.enable_icc:false &> /dev/null; then
 
-    service docker stop
-    service docker.socket stop
-    service docker.service stop
+    service docker stop &> /dev/null
+    service docker.socket stop &> /dev/null
+    service docker.service stop &> /dev/null
 
     if ! ls /etc/default/docker &> /dev/null; then
         touch /etc/default/docker
+        echo "DOCKER_OPTS='--icc=false --selinux-enabled'" >> /etc/default/docker
     fi
     
     FILE='/lib/systemd/system/docker.service'
@@ -149,10 +150,10 @@ if ! command docker network ls --quiet | xargs docker network inspect --format '
         sudo sed -i "$((ADD_LINE_NUMBER + 2))i $NEW_LINE2" $FILE
     fi
 
-    service docker start
-    service docker.socket start
-    service docker.service start
-    systemctl daemon-reload
+    service docker start &> /dev/null
+    service docker.socket start &> /dev/null
+    service docker.service start &> /dev/null
+    systemctl daemon-reload &> /dev/null
     echo "default bridege를 통한 컨테이너간 네트워크 트래픽 제한"
 fi
 
@@ -285,3 +286,56 @@ if [ ! "$(echo $DOCKER_CONTENT_TRUST)" == "1" ]; then
     sudo source ~/.bashrc
 fi
 
+
+### 24. 컨테이너 SELinux 보안 옵션 설정
+FILE="/etc/default/docker"
+OPTION="--selinux-enabled"
+if ! grep -q "selinux-enabled" "$FILE"; then
+    service docker stop &> /dev/null
+    service docker.socket stop &> /dev/null
+    service docker.service stop &> /dev/null
+
+    if ! ls /etc/default/docker &> /dev/null; then
+        touch /etc/default/docker
+        echo "DOCKER_OPTS='--icc=false --selinux-enabled'" >> /etc/default/docker
+    fi
+
+    sudo sed -i "/^DOCKER_OPTS=/ s/'$/ $OPTION'/" "$FILE" || echo "DOCKER_OPTS='--icc=false $OPTION'" | sudo tee -a "$FILE"
+
+    SERVICE_FILE='/lib/systemd/system/docker.service'
+    # [Service] 부분의 행 번호 찾기
+    ADD_LINE_NUMBER=$(($(grep -n "\[Service\]" $SERVICE_FILE | cut -d: -f1)+1))
+
+    OLD_LINE='ExecStart=/usr/bin/dockerd'
+    sudo sed -i "\|$OLD_LINE|d" $SERVICE_FILE
+
+    NEW_LINE='EnvironmentFile=/etc/default/docker'
+    if ! grep -q "$NEW_LINE" "$SERVICE_FILE"; then
+        sudo sed -i "$((ADD_LINE_NUMBER + 1))i $NEW_LINE" $SERVICE_FILE
+    fi
+
+    NEW_LINE2="ExecStart=/usr/bin/dockerd -H fd:// \$DOCKER_OPTS"
+    if ! grep -q "$NEW_LINE2" "$SERVICE_FILE"; then
+        sudo sed -i "$((ADD_LINE_NUMBER + 2))i $NEW_LINE2" $SERVICE_FILE
+    fi
+
+    service docker start &> /dev/null
+    service docker.socket start &> /dev/null
+    service docker.service start &> /dev/null
+    systemctl daemon-reload &> /dev/null
+    echo "컨테이너 SELinux 보안 옵션 설정"
+fi
+
+
+### 25. 컨테이너에서 ssh 사용 금지
+# 컨테이너에서 설정
+# docker ps --quiet
+# docker exec <컨테이너 ID> ps -el
+
+
+### 26. 컨테이너에 privileged 포트 매핑 금지
+# 컨테이너에서 설정
+
+
+### 27. PIDs cgroup 제한
+# docker-compose.yml 파일에 작성
