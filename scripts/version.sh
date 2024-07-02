@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-DB_VERSION="10.4.13"
-HTTPD_VERSION="2.4.43"
-PHP_VERSION="7.4.7"
-NODE_VERSION="10.16.3"
-
