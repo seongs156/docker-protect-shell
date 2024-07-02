@@ -269,15 +269,15 @@ if ls $DAEMON_JSON &> /dev/null; then
 fi
 
 
+DEFAULT_DOCKER="/etc/default/docker"
 ### 21. /etc/default/docker 파일 소유권 설정
-if [ ! "$(stat -c '%U:%G' /etc/default/docker)" == "root:root" ]; then
-    sudo chown root:root /etc/default/docker
-    echo /etc/default/docker 파일 소유권 설정
+if [ ! "$(stat -c '%U:%G' $DEFAULT_DOCKER)" == "root:root" ]; then
+    sudo chown root:root $DEFAULT_DOCKER
+    echo "/etc/default/docker 파일 소유권 설정"
 fi
 
 
 ### 22. /etc/default/docker 파일 접근권한 설정
-DEFAULT_DOCKER="/etc/default/docker"
 if ls $DEFAULT_DOCKER &> /dev/null; then
     if [ "$(stat -c '%a' $DEFAULT_DOCKER)" -gt 644 ]; then
         sudo chmod 644 $DEFAULT_DOCKER
@@ -302,9 +302,9 @@ if ! grep -q "selinux-enabled" "$FILE"; then
     service docker.socket stop &> /dev/null
     service docker.service stop &> /dev/null
 
-    if ! ls /etc/default/docker &> /dev/null; then
-        touch /etc/default/docker
-        echo "DOCKER_OPTS='--icc=false --selinux-enabled'" >> /etc/default/docker
+    if ! ls $FILE &> /dev/null; then
+        touch $FILE
+        echo "DOCKER_OPTS='--icc=false --selinux-enabled'" >> $FILE
     fi
 
     sudo sed -i "/^DOCKER_OPTS=/ s/'$/ $OPTION'/" "$FILE" || echo "DOCKER_OPTS='--icc=false $OPTION'" | sudo tee -a "$FILE"
@@ -316,7 +316,7 @@ if ! grep -q "selinux-enabled" "$FILE"; then
     OLD_LINE='ExecStart=/usr/bin/dockerd'
     sudo sed -i "\|$OLD_LINE|d" $SERVICE_FILE
 
-    NEW_LINE='EnvironmentFile=/etc/default/docker'
+    NEW_LINE="EnvironmentFile=$FILE"
     if ! grep -q "$NEW_LINE" "$SERVICE_FILE"; then
         sudo sed -i "$((ADD_LINE_NUMBER + 1))i $NEW_LINE" $SERVICE_FILE
     fi
