@@ -24,34 +24,34 @@ fi
 
 
 # ## 1. 도커 설치
-if ! command rpm -qa | grep docker-ce &> /dev/null; then
-    echo "Docker 설치중..."
-    sudo yum install -y yum-utils
-    sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-    sudo yum install -y docker-ce docker-ce-cli containerd.io
-    sudo systemctl enable docker
-    sudo systemctl start docker
-    sudo curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
-    docker_version=$(docker version --format '{{.Server.Version}}')
-    echo "1. Docker is install. Version: $docker_version"
-else
-    docker_version=$(docker version --format '{{.Server.Version}}')
-    echo "Docker is installed. Version: $docker_version"
-fi
+# if ! command rpm -qa | grep docker-ce &> /dev/null; then
+#     echo "Docker 설치중..."
+#     sudo yum install -y yum-utils
+#     sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+#     sudo yum install -y docker-ce docker-ce-cli containerd.io
+#     sudo systemctl enable docker
+#     sudo systemctl start docker
+#     sudo curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+#     sudo chmod +x /usr/local/bin/docker-compose
+#     docker_version=$(docker version --format '{{.Server.Version}}')
+#     echo "1. Docker is install. Version: $docker_version"
+# else
+#     docker_version=$(docker version --format '{{.Server.Version}}')
+#     echo "Docker is installed. Version: $docker_version"
+# fi
 
 
 
 # ## 2. 도커 최신버전 패치
-docker_version=$(docker version --format '{{.Server.Version}}')
-rpm_docker_version=$(rpm -qa | grep docker-ce | awk -F'-' '/docker-ce-[0-9]/ {print $3}')
+# docker_version=$(docker version --format '{{.Server.Version}}')
+# rpm_docker_version=$(rpm -qa | grep docker-ce | awk -F'-' '/docker-ce-[0-9]/ {print $3}')
 
-if [ "$docker_version" != "$rpm_docker_version" ]; then
-    sudo yum update docker-ce docker-ce-cli containerd.io
-    sudo systemctl restart docker
-    docker_version=$(docker version --format '{{.Server.Version}}')
-    echo "2. Docker Update Version: $docker_version"
-fi
+# if [ "$docker_version" != "$rpm_docker_version" ]; then
+#     sudo yum update docker-ce docker-ce-cli containerd.io
+#     sudo systemctl restart docker
+#     docker_version=$(docker version --format '{{.Server.Version}}')
+#     echo "2. Docker Update Version: $docker_version"
+# fi
 
 
 
@@ -159,6 +159,10 @@ fi
 
 
 ### 11. 도커 클라이언트 인증 활성화
+# docker plugin ls 명령어 실행 결과를 변수에 저장
+# PLUGIN_LIST=$(docker plugin ls)
+# 플러그인 목록이 비어 있는지 확인
+
 if [[ "$(docker plugin ls)" == *"ID        NAME      DESCRIPTION   ENABLED"* ]]; then
     # docker plugin ls
     # 플러그인 정지 -> sudo docker plugin disable vieux/sshfs:latest
@@ -240,16 +244,16 @@ if ls $DOCKER_SOCK &> /dev/null; then
     fi
 fi
 
-DAEMON_JSON="/etc/docker/daemon.json"
+
 ### 19. daemon.json 파일 소유권 설정
-if ls $DAEMON_JSON &> /dev/null; then
-    if [ ! "$(stat -c '%U:%G' $DAEMON_JSON)" == "root:root" ]; then
-        sudo chown root:root $DAEMON_JSON
-        echo daemon.json 파일 소유권 설정
-    fi
+if [ ! "$(stat -c '%U:%G' /etc/docker/daemon.json)" == "root:root" ]; then
+    sudo chown root:root /etc/docker/daemon.json
+    echo daemon.json 파일 소유권 설정
 fi
 
+
 ### 20. daemon.json 파일 접근권한 설정
+DAEMON_JSON="/etc/docker/daemon.json"
 if ls $DAEMON_JSON &> /dev/null; then
     if [ "$(stat -c '%a' $DAEMON_JSON)" -gt 644 ]; then
         sudo chmod 644 $DAEMON_JSON
